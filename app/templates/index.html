@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard: Macroeconomic & Company Data</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Financial Dashboard</h1>
+        <p>Historical data with predictions for 2025-2026</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-button active" data-tab="macro-tab">Macroeconomic Indicators</button>
+        <button class="tab-button" data-tab="company-tab">Company Metrics</button>
+        <button class="tab-button" data-tab="correlation-tab">Correlations</button>
+    </div>
+
+    <div class="tab-content" id="macro-tab">
+        <div class="container">
+            <div class="sidebar">
+                <h2>Select Indicator</h2>
+                <div class="indicator-list">
+                    {% for indicator in macro_indicators %}
+                    <div class="indicator-item" data-indicator="{{ indicator }}">
+                        {{ indicator.replace('_', ' ') }}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="prediction-summary">
+                    <h2>Prediction Summary</h2>
+                    <div id="macro-summary-content" class="summary-content">
+                        <p>Select an indicator to view its prediction summary</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="chart-container">
+                    <canvas id="macroChart"></canvas>
+                </div>
+                
+                <div class="info-panel">
+                    <h2 id="current-macro-indicator">Select an indicator</h2>
+                    <p id="macro-indicator-description"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="company-tab" style="display: none;">
+        <div class="container">
+            <div class="sidebar">
+                <h2>Select Company Metric</h2>
+                <div class="indicator-list">
+                    {% for metric in company_metrics %}
+                    <div class="company-item" data-metric="{{ metric }}">
+                        {{ metric.replace('_', ' ') }}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="prediction-summary">
+                    <h2>Prediction Summary</h2>
+                    <div id="company-summary-content" class="summary-content">
+                        <p>Select a metric to view its prediction summary</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="chart-container">
+                    <canvas id="companyChart"></canvas>
+                </div>
+                
+                <div class="info-panel">
+                    <h2 id="current-company-metric">Select a metric</h2>
+                    <p id="company-metric-description"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content" id="correlation-tab" style="display: none;">
+        <div class="container">
+            <div class="correlation-matrix">
+                <h2>Correlation Matrix: Company Metrics vs. Macro Indicators</h2>
+                <div class="correlation-selector">
+                    <label for="metric-select">Select Company Metric:</label>
+                    <select id="metric-select">
+                        {% for metric in company_metrics %}
+                        <option value="{{ metric }}">{{ metric.replace('_', ' ') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="correlation-chart-container">
+                    <canvas id="correlationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let macroChart;
+        let companyChart;
+        let correlationChart;
+        let currentMacroIndicator;
+        let currentCompanyMetric;
+        let macroSummaryData;
+        let companySummaryData;
+        let correlationData;
+
+        // Function to format numbers with commas for thousands
+        function formatNumber(num) {
+            return num.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Function to load macroeconomic data and create/update chart
+        function loadMacroChart(indicator) {
+            currentMacroIndicator = indicator;
+            
+            fetch(`/macro-data/${indicator}`)
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('macroChart').getContext('2d');
+                    
+                    // Prepare datasets with different colors for historical and predicted data
+                    let datasets = [];
+                    
+                    // Find where predictions start
+                    const predictedStartIndex = data.is_predicted.indexOf(true);
+                    
+                    if (predictedStartIndex !== -1) {
+                        // Historical data
+                        datasets.push({
+                            label: 'Historical',
+                            data: data.values.slice(0, predictedStartIndex),
+                            borderColor: '#1e88e5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            pointRadius: 1,
+                            borderWidth: 2
+                        });
+                        
+                        // Create a separate segment just for predicted data
+                        // Need to position it correctly along x-axis
+                        const predictedData = new Array(predictedStartIndex).fill(null);
+                        predictedData.push(...data.values.slice(predictedStartIndex));
+                        
+                        datasets.push({
+                            label: 'Predicted (2025-2026)',
+                            data: predictedData,
+                            borderColor: '#e53935',
+                            backgroundColor: 'rgba(229, 57, 53, 0.1)',
+                            pointRadius: 2,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            spanGaps: true // This makes the line skip over null values
+                        });
+                    } else {
+                        // All historical data
+                        datasets.push({
+                            label: indicator.replace('_', ' '),
+                            data: data.values,
+                            borderColor: '#1e88e5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            pointRadius: 1,
+                            borderWidth: 2
+                        });
+                    }
+                    
+                    // Destroy previous chart if it exists
+                    if (macroChart) {
+                        macroChart.destroy();
+                    }
+                    
+                    // Create new chart
+                    macroChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.dates,
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: indicator.replace('_', ' '),
+                                    font: {
+                                        size: 18
+                                    }
+                                },
+                                legend: {
+                                    position: 'top'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        maxRotation: 45,
+                                        minRotation: 45
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: false
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Update the indicator title
+                    document.getElementById('current-macro-indicator').textContent = indicator.replace('_', ' ');
+                    
+                    // Update summary if we have it
+                    updateMacroSummary();
+                });
+        }
+
+        // Function to load company data and create/update chart
+        function loadCompanyChart(metric) {
+            currentCompanyMetric = metric;
+            
+            fetch(`/company-data/${metric}`)
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('companyChart').getContext('2d');
+                    
+                    // Prepare datasets with different colors for historical and predicted data
+                    let datasets = [];
+                    
+                    // Find where predictions start
+                    const predictedStartIndex = data.is_predicted.indexOf(true);
+                    
+                    if (predictedStartIndex !== -1) {
+                        // Historical data
+                        datasets.push({
+                            label: 'Historical',
+                            data: data.values.slice(0, predictedStartIndex),
+                            borderColor: '#1e88e5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            pointRadius: 1,
+                            borderWidth: 2
+                        });
+                        
+                        // Create a separate segment just for predicted data
+                        // Need to position it correctly along x-axis
+                        const predictedData = new Array(predictedStartIndex).fill(null);
+                        predictedData.push(...data.values.slice(predictedStartIndex));
+                        
+                        datasets.push({
+                            label: 'Predicted (2025-2026)',
+                            data: predictedData,
+                            borderColor: '#e53935',
+                            backgroundColor: 'rgba(229, 57, 53, 0.1)',
+                            pointRadius: 2,
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            spanGaps: true // This makes the line skip over null values
+                        });
+                    } else {
+                        // All historical data
+                        datasets.push({
+                            label: metric.replace('_', ' '),
+                            data: data.values,
+                            borderColor: '#1e88e5',
+                            backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                            pointRadius: 1,
+                            borderWidth: 2
+                        });
+                    }
+                    
+                    // Destroy previous chart if it exists
+                    if (companyChart) {
+                        companyChart.destroy();
+                    }
+                    
+                    // Create new chart
+                    companyChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.dates,
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: metric.replace('_', ' '),
+                                    font: {
+                                        size: 18
+                                    }
+                                },
+                                legend: {
+                                    position: 'top'
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    ticks: {
+                                        maxRotation: 45,
+                                        minRotation: 45
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: false
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Update the metric title
+                    document.getElementById('current-company-metric').textContent = metric.replace('_', ' ');
+                    
+                    // Update summary if we have it
+                    updateCompanySummary();
+                });
+        }
+
+        // Function to load correlation data and create/update chart
+        function loadCorrelationChart(metric) {
+            if (!correlationData) return;
+            
+            const metricData = correlationData[metric];
+            if (!metricData) return;
+            
+            const indicators = Object.keys(metricData);
+            const correlationValues = Object.values(metricData);
+            
+            // Prepare colors based on correlation values (positive = blue, negative = red)
+            const backgroundColors = correlationValues.map(value => 
+                value >= 0 ? `rgba(30, 136, 229, ${Math.abs(value)})` : `rgba(229, 57, 53, ${Math.abs(value)})`
+            );
+            
+            const borderColors = correlationValues.map(value => 
+                value >= 0 ? '#1e88e5' : '#e53935'
+            );
+            
+            const ctx = document.getElementById('correlationChart').getContext('2d');
+            
+            // Destroy previous chart if it exists
+            if (correlationChart) {
+                correlationChart.destroy();
+            }
+            
+            // Create new chart
+            correlationChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: indicators.map(ind => ind.replace('_', ' ')),
+                    datasets: [{
+                        label: `Correlation with ${metric.replace('_', ' ')}`,
+                        data: correlationValues,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            min: -1,
+                            max: 1
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Correlation with ${metric.replace('_', ' ')}`,
+                            font: {
+                                size: 18
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    return `Correlation: ${value.toFixed(3)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Function to load and display macro summary data
+        function loadMacroSummary() {
+            fetch('/macro-summary')
+                .then(response => response.json())
+                .then(data => {
+                    macroSummaryData = data;
+                    if (currentMacroIndicator) {
+                        updateMacroSummary();
+                    }
+                });
+        }
+
+        // Function to load and display company summary data
+        function loadCompanySummary() {
+            fetch('/company-summary')
+                .then(response => response.json())
+                .then(data => {
+                    companySummaryData = data;
+                    if (currentCompanyMetric) {
+                        updateCompanySummary();
+                    }
+                });
+        }
+
+        // Function to load correlation data
+        function loadCorrelationData() {
+            fetch('/correlations')
+                .then(response => response.json())
+                .then(data => {
+                    correlationData = data;
+                    const metricSelect = document.getElementById('metric-select');
+                    if (metricSelect.value) {
+                        loadCorrelationChart(metricSelect.value);
+                    }
+                });
+        }
+
+        // Function to update the macro summary panel
+        function updateMacroSummary() {
+            if (!macroSummaryData || !currentMacroIndicator) return;
+            
+            const summary = macroSummaryData[currentMacroIndicator];
+            if (!summary) return;
+            
+            const summaryContent = document.getElementById('macro-summary-content');
+            
+            // Color for the percent change
+            const changeColor = summary.change_percent >= 0 ? 'green' : 'red';
+            const changeSymbol = summary.change_percent >= 0 ? '▲' : '▼';
+            
+            summaryContent.innerHTML = `
+                <h3>2025-2026 Predictions</h3>
+                <div class="summary-item">
+                    <span>Initial (2025):</span>
+                    <span>${formatNumber(summary.start)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Final (2026):</span>
+                    <span>${formatNumber(summary.end)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Change:</span>
+                    <span style="color: ${changeColor}">
+                        ${changeSymbol} ${formatNumber(summary.change_percent)}%
+                    </span>
+                </div>
+                <div class="summary-item">
+                    <span>Min:</span>
+                    <span>${formatNumber(summary.min)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Max:</span>
+                    <span>${formatNumber(summary.max)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Average:</span>
+                    <span>${formatNumber(summary.mean)}</span>
+                </div>
+            `;
+        }
+
+        // Function to update the company summary panel
+        function updateCompanySummary() {
+            if (!companySummaryData || !currentCompanyMetric) return;
+            
+            const summary = companySummaryData[currentCompanyMetric];
+            if (!summary) return;
+            
+            const summaryContent = document.getElementById('company-summary-content');
+            
+            // Color for the percent change
+            const changeColor = summary.change_percent >= 0 ? 'green' : 'red';
+            const changeSymbol = summary.change_percent >= 0 ? '▲' : '▼';
+            
+            summaryContent.innerHTML = `
+                <h3>2025-2026 Predictions</h3>
+                <div class="summary-item">
+                    <span>Initial (2025):</span>
+                    <span>${formatNumber(summary.start)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Final (2026):</span>
+                    <span>${formatNumber(summary.end)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Change:</span>
+                    <span style="color: ${changeColor}">
+                        ${changeSymbol} ${formatNumber(summary.change_percent)}%
+                    </span>
+                </div>
+                <div class="summary-item">
+                    <span>Min:</span>
+                    <span>${formatNumber(summary.min)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Max:</span>
+                    <span>${formatNumber(summary.max)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Average:</span>
+                    <span>${formatNumber(summary.mean)}</span>
+                </div>
+            `;
+        }
+
+        // Tab functionality
+        function showTab(tabId) {
+            // Hide all tab content
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show the selected tab content and set active class on button
+            document.getElementById(tabId).style.display = 'block';
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        // Event listeners for tab buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up tabs
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    showTab(tabId);
+                });
+            });
+            
+            // Load data for each section
+            loadMacroSummary();
+            loadCompanySummary();
+            loadCorrelationData();
+            
+            // Add click event to macro indicators
+            const indicators = document.querySelectorAll('.indicator-item');
+            indicators.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all indicators
+                    indicators.forEach(i => i.classList.remove('active'));
+                    
+                    // Add active class to selected indicator
+                    this.classList.add('active');
+                    
+                    // Load data for this indicator
+                    const indicator = this.getAttribute('data-indicator');
+                    loadMacroChart(indicator);
+                });
+            });
+            
+            // Add click event to company metrics
+            const companyItems = document.querySelectorAll('.company-item');
+            companyItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all metrics
+                    companyItems.forEach(i => i.classList.remove('active'));
+                    
+                    // Add active class to selected metric
+                    this.classList.add('active');
+                    
+                    // Load data for this metric
+                    const metric = this.getAttribute('data-metric');
+                    loadCompanyChart(metric);
+                });
+            });
+            
+            // Add change event to metric select for correlation chart
+            const metricSelect = document.getElementById('metric-select');
+            metricSelect.addEventListener('change', function() {
+                loadCorrelationChart(this.value);
+            });
+            
+            // If indicators exist, select the first one by default
+            if (indicators.length > 0) {
+                indicators[0].click();
+            }
+            
+            // If company metrics exist, select the first one by default
+            if (companyItems.length > 0) {
+                companyItems[0].click();
+            }
+            
+            // Set the first tab as active
+            showTab('macro-tab');
+        });
+    </script>
+</body>
+</html>
