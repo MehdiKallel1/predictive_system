@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Macroeconomic Indicators Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Macroeconomic Indicators Dashboard</h1>
+        <p>Historical data with predictions for 2025-2026</p>
+    </header>
+
+    <div class="container">
+        <div class="sidebar">
+            <h2>Select Indicator</h2>
+            <div class="indicator-list">
+                {% for indicator in indicators %}
+                <div class="indicator-item" data-indicator="{{ indicator }}">
+                    {{ indicator.replace('_', ' ') }}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="prediction-summary">
+                <h2>Prediction Summary</h2>
+                <div id="summary-content" class="summary-content">
+                    <p>Select an indicator to view its prediction summary</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="chart-container">
+                <canvas id="indicatorChart"></canvas>
+            </div>
+            
+            <div class="info-panel">
+                <h2 id="current-indicator">Select an indicator</h2>
+                <p id="indicator-description"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let chart;
+        let currentIndicator;
+        let summaryData;
+
+        // Function to format numbers with commas for thousands
+        function formatNumber(num) {
+            return num.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Function to load data and create/update chart
+// Function to load data and create/update chart
+function loadChart(indicator) {
+    currentIndicator = indicator;
+    
+    fetch(`/data/${indicator}`)
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('indicatorChart').getContext('2d');
+            
+            // Prepare datasets with different colors for historical and predicted data
+            let datasets = [];
+            
+            // Find where predictions start
+            const predictedStartIndex = data.is_predicted.indexOf(true);
+            
+            if (predictedStartIndex !== -1) {
+                // Historical data
+                datasets.push({
+                    label: 'Historical',
+                    data: data.values.slice(0, predictedStartIndex),
+                    borderColor: '#1e88e5',
+                    backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                    pointRadius: 1,
+                    borderWidth: 2
+                });
+                
+                // Create a separate segment just for predicted data
+                // Need to position it correctly along x-axis
+                const predictedData = new Array(predictedStartIndex).fill(null);
+                predictedData.push(...data.values.slice(predictedStartIndex));
+                
+                datasets.push({
+                    label: 'Predicted (2025-2026)',
+                    data: predictedData,
+                    borderColor: '#e53935',
+                    backgroundColor: 'rgba(229, 57, 53, 0.1)',
+                    pointRadius: 2,
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    spanGaps: true // This makes the line skip over null values
+                });
+            } else {
+                // All historical data
+                datasets.push({
+                    label: indicator.replace('_', ' '),
+                    data: data.values,
+                    borderColor: '#1e88e5',
+                    backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                    pointRadius: 1,
+                    borderWidth: 2
+                });
+            }
+            
+            // Destroy previous chart if it exists
+            if (chart) {
+                chart.destroy();
+            }
+            
+            // Create new chart
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: indicator.replace('_', ' '),
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+            
+            // Update the indicator title
+            document.getElementById('current-indicator').textContent = indicator.replace('_', ' ');
+            
+            // Update summary if we have it
+            updateSummary();
+        });
+}
+
+        // Function to load and display summary data
+        function loadSummary() {
+            fetch('/summary')
+                .then(response => response.json())
+                .then(data => {
+                    summaryData = data;
+                    if (currentIndicator) {
+                        updateSummary();
+                    }
+                });
+        }
+
+        // Function to update the summary panel
+        function updateSummary() {
+            if (!summaryData || !currentIndicator) return;
+            
+            const summary = summaryData[currentIndicator];
+            if (!summary) return;
+            
+            const summaryContent = document.getElementById('summary-content');
+            
+            // Color for the percent change
+            const changeColor = summary.change_percent >= 0 ? 'green' : 'red';
+            const changeSymbol = summary.change_percent >= 0 ? '▲' : '▼';
+            
+            summaryContent.innerHTML = `
+                <h3>2025-2026 Predictions</h3>
+                <div class="summary-item">
+                    <span>Initial (2025):</span>
+                    <span>${formatNumber(summary.start)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Final (2026):</span>
+                    <span>${formatNumber(summary.end)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Change:</span>
+                    <span style="color: ${changeColor}">
+                        ${changeSymbol} ${formatNumber(summary.change_percent)}%
+                    </span>
+                </div>
+                <div class="summary-item">
+                    <span>Min:</span>
+                    <span>${formatNumber(summary.min)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Max:</span>
+                    <span>${formatNumber(summary.max)}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Average:</span>
+                    <span>${formatNumber(summary.mean)}</span>
+                </div>
+            `;
+        }
+
+        // Event listeners for indicator selection
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load summary data
+            loadSummary();
+            
+            // Add click event to indicators
+            const indicators = document.querySelectorAll('.indicator-item');
+            indicators.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all indicators
+                    indicators.forEach(i => i.classList.remove('active'));
+                    
+                    // Add active class to selected indicator
+                    this.classList.add('active');
+                    
+                    // Load data for this indicator
+                    const indicator = this.getAttribute('data-indicator');
+                    loadChart(indicator);
+                });
+            });
+            
+            // If indicators exist, select the first one by default
+            if (indicators.length > 0) {
+                indicators[0].click();
+            }
+        });
+    </script>
+</body>
+</html>
