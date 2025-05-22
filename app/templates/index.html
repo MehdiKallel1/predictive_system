@@ -6,6 +6,9 @@
     <title>Dashboard: Macroeconomic & Company Data</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <header>
@@ -13,11 +16,76 @@
         <p>Historical data with predictions for 2025-2026</p>
     </header>
 
+
     <div class="tabs">
         <button class="tab-button active" data-tab="macro-tab">Macroeconomic Indicators</button>
         <button class="tab-button" data-tab="company-tab">Company Metrics</button>
-        <button class="tab-button" data-tab="correlation-tab">Correlations</button>
+        <button class="tab-button" data-tab="upload-tab">Upload Data</button>
+        <button class="tab-button" data-tab="chat-tab">Chat Assistant</button>
     </div>
+    
+<div class="tab-content" id="chat-tab" style="display: none;">
+    <div class="container">
+        <div class="sidebar">
+            <h2>Chat Assistant</h2>
+            <div class="chat-info">
+                <p>Welcome to the Financial Insights Assistant! Ask questions about:</p>
+                <ul>
+                    <li>Macroeconomic indicators and trends</li>
+                    <li>Company metrics and performance</li>
+                    <li>Correlations between economic factors and your business</li>
+                    <li>Prediction reliability and future outlook</li>
+                    <li>Model performance and feature importance</li>
+                </ul>
+                <div class="recent-topics">
+                    <h3>Suggested Topics</h3>
+                    <div class="topic-chips" id="topic-chips">
+                        <button class="topic-chip">Revenue forecasts</button>
+                        <button class="topic-chip">GDP correlation</button>
+                        <button class="topic-chip">Model accuracy</button>
+                        <button class="topic-chip">Market trends</button>
+                        <button class="topic-chip">Risk factors</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content chat-main-content">
+            <div class="chat-header-controls">
+                <button id="clear-chat-btn">Clear Chat</button>
+                <div class="chat-view-options">
+                    <span>View: </span>
+                    <select id="chat-view-selector">
+                        <option value="all">All Messages</option>
+                        <option value="macro">Macroeconomic Focus</option>
+                        <option value="company">Company Focus</option>
+                        <option value="predictions">Predictions Focus</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="tab-chat-messages" id="tab-chat-messages">
+                <div class="message system">
+                    <div class="message-content">
+                        <p>👋 Hello! I'm your Financial Insights Assistant. I can help you understand:</p>
+                        <ul>
+                            <li>The relationships between macroeconomic indicators and your company metrics</li>
+                            <li>The predictions for 2025-2026 and their reliability</li>
+                            <li>Key factors influencing your business performance</li>
+                        </ul>
+                        <p>What would you like to explore today?</p>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <div class="tab-chat-input-container">
+                <input type="text" id="tab-chat-input" placeholder="Ask anything about your financial data, predictions, or relationships...">
+                <button id="tab-send-chat-btn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
 
     <div class="tab-content" id="macro-tab">
         <div class="container">
@@ -25,9 +93,9 @@
                 <h2>Select Indicator</h2>
                 <div class="indicator-list">
                     {% for indicator in macro_indicators %}
-                    <div class="indicator-item" data-indicator="{{ indicator }}">
-                        {{ indicator.replace('_', ' ') }}
-                    </div>
+                        <div class="indicator-item" data-indicator="{{ indicator }}">
+                            {{ indicator.replace('_', ' ') }}
+                        </div>
                     {% endfor %}
                 </div>
                 
@@ -51,18 +119,19 @@
             </div>
         </div>
     </div>
-
+    
     <div class="tab-content" id="company-tab" style="display: none;">
         <div class="container">
             <div class="sidebar">
                 <h2>Select Company Metric</h2>
                 <div class="indicator-list">
                     {% for metric in company_metrics %}
-                    <div class="company-item" data-metric="{{ metric }}">
-                        {{ metric.replace('_', ' ') }}
-                    </div>
+                        <div class="company-item" data-metric="{{ metric }}">
+                            {{ metric.replace('_', ' ') }}
+                        </div>
                     {% endfor %}
                 </div>
+                
                 
                 <div class="prediction-summary">
                     <h2>Prediction Summary</h2>
@@ -84,36 +153,148 @@
             </div>
         </div>
     </div>
-
-    <div class="tab-content" id="correlation-tab" style="display: none;">
+    <!-- Add this right after the tabs section in index.html -->
+    <div class="tab-content" id="upload-tab">
         <div class="container">
-            <div class="correlation-matrix">
-                <h2>Correlation Matrix: Company Metrics vs. Macro Indicators</h2>
-                <div class="correlation-selector">
-                    <label for="metric-select">Select Company Metric:</label>
-                    <select id="metric-select">
-                        {% for metric in company_metrics %}
-                        <option value="{{ metric }}">{{ metric.replace('_', ' ') }}</option>
-                        {% endfor %}
-                    </select>
+            <div class="sidebar">
+                <h2>Upload Company Data</h2>
+                <div class="upload-instructions">
+                    <p>Upload your company's historical data to use with our prediction models.
+                    The file must be a CSV with the following columns:</p>
+                    <a href="/download-sample-template" class="download-link">
+                        <i class="fas fa-download"></i> Download sample template
+                    </a>
                 </div>
-                <div class="correlation-chart-container">
-                    <canvas id="correlationChart"></canvas>
+                
+                <div class="requirements-list">
+                    <h3>Required Columns:</h3>
+                    <ul>
+                        <li>Date (in YYYY-MM-DD format)</li>
+                    </ul>
+                    <h3>Additional Columns:</h3>
+                    <ul>
+                        <li>Any numeric columns (e.g., Revenue, Profit, Risk_Score)</li>
+                        <li>At least one numeric column is required</li>
+                        <li>Each column will be treated as a metric to be predicted</li>
+                    </ul>
+                    <h3>Data Requirements:</h3>
+                    <ul>
+                        <li>At least 12 months of data</li>
+                        <li>Dates must overlap with our macroeconomic data</li>
+                        <li>No missing values in the numeric columns</li>
+                    </ul>
+                </div>
+                
+                <div class="upload-note">
+                    <p>Only upload data up through 2024-12-31. The system will automatically generate predictions for 2025-2026.</p>
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <form id="upload-form" action="/upload-company-data" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <div class="file-input-container">
+                            <input type="file" id="company-data-file" name="company-data-file" accept=".csv" required>
+                            <label for="company-data-file" class="file-input-label">
+                                <i class="fas fa-upload"></i> Choose CSV File
+                            </label>
+                            <span id="file-name">No file selected</span>
+                        </div>
+                        
+                        <button type="submit" class="action-button">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload and Generate Predictions
+                        </button>
+                    </div>
+                </form>
+                
+                <div id="upload-status" class="status-message hidden">
+                    <div class="loader"></div>
+                    <p>Processing your data...</p>
+                </div>
+                
+                <div id="upload-result" class="result-container hidden">
+                    <!-- Results will be displayed here -->
                 </div>
             </div>
         </div>
     </div>
+    <div class="model-performance-section">
+        <button id="toggle-performance-btn" class="toggle-performance-btn">
+            <i class="fas fa-chart-line"></i> <span id="toggle-text">Hide Model Performance</span>
+        </button>
+        
+        <div id="model-performance-container" class="model-performance-container">
+            <h3>Model Performance Metrics</h3>
+            <p class="model-description">These metrics reflect how well the model performs based on cross-validation using historical data</p>
+            
+            <div class="performance-grid">
+                <div class="performance-card">
+                    <div class="info-tooltip">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">R² measures how well the model explains the variance in the data (0-1, higher is better)</span>
+                    </div>
+                    <h4>Model Accuracy</h4>
+                    <div class="metric-value" id="model-r2">--</div>
+                    <div class="metric-label">R² Score</div>
+                </div>
+                
+                <div class="performance-card">
+                    <div class="info-tooltip">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">Average percentage difference between predictions and actual values</span>
+                    </div>
+                    <h4>Average Error</h4>
+                    <div class="metric-value" id="model-mape">--</div>
+                    <div class="metric-label">Mean % Error (MAPE)</div>
+                </div>
+                
+                <div class="performance-card">
+                    <div class="info-tooltip">
+                        <i class="fas fa-info-circle"></i>
+                        <span class="tooltip-text">Average absolute difference between predictions and actual values, normalized to a 0-1 scale</span>
+                    </div>
+                    <h4>Absolute Error</h4>
+                    <div class="metric-value" id="model-mae">--</div>
+                    <div class="metric-label">Normalized MAE (0-1)</div>
+                    <div class="mae-scale">
+                        <div class="mae-marker" id="mae-marker" style="left: 0%"></div>
+                    </div>
+                    <div class="scale-labels">
+                        <span>0 (Perfect)</span>
+                        <span>0.5 (Average)</span>
+                        <span>1 (Poor)</span>
+                    </div>
+                </div>
+                </div>
+ 
+            
+            <div class="performance-visualizations">
+                <div class="importance-chart-container">
+                    <h4>Top Influencing Factors</h4>
+                    <p>Macroeconomic indicators with the greatest impact on this metric</p>
+                    <div class="chart-wrapper">
+                        <canvas id="importanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="validation-chart-container">
+                    <h4>Model Validation</h4>
+                    <p>Comparison of predicted vs. actual values on test data</p>
+                    <div class="chart-wrapper">
+                        <canvas id="validationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
 
     <script>
         // Global variables
         let macroChart;
         let companyChart;
-        let correlationChart;
         let currentMacroIndicator;
         let currentCompanyMetric;
         let macroSummaryData;
         let companySummaryData;
-        let correlationData;
 
         // Function to format numbers with commas for thousands
         function formatNumber(num) {
@@ -122,10 +303,12 @@
                 maximumFractionDigits: 2
             });
         }
-
+        window.currentMacroIndicator = null;
+        window.currentCompanyMetric = null;
         // Function to load macroeconomic data and create/update chart
         function loadMacroChart(indicator) {
             currentMacroIndicator = indicator;
+            window.currentMacroIndicator = indicator;
             
             fetch(`/macro-data/${indicator}`)
                 .then(response => response.json())
@@ -150,7 +333,6 @@
                         });
                         
                         // Create a separate segment just for predicted data
-                        // Need to position it correctly along x-axis
                         const predictedData = new Array(predictedStartIndex).fill(null);
                         predictedData.push(...data.values.slice(predictedStartIndex));
                         
@@ -162,7 +344,7 @@
                             pointRadius: 2,
                             borderWidth: 2,
                             borderDash: [5, 5],
-                            spanGaps: true // This makes the line skip over null values
+                            spanGaps: true
                         });
                     } else {
                         // All historical data
@@ -228,10 +410,194 @@
                     updateMacroSummary();
                 });
         }
+        document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded, checking chat functionality");
+    
+    // Check if the send button exists
+    const sendButton = document.querySelector('#tab-send-chat-btn');
+    if (sendButton) {
+        console.log("Send button found:", sendButton);
+        
+        // Add a click event with a clear log to verify it's working
+        sendButton.addEventListener('click', function() {
+            console.log("Send button clicked!");
+            const chatInput = document.querySelector('#tab-chat-input');
+            console.log("Input value:", chatInput ? chatInput.value : "Input not found");
+            
+            // Try sending message again
+            sendTabMessage();
+        });
+    } else {
+        console.error("Send button not found! Check IDs in HTML");
+    }
+    
+    // Also check input field
+    const chatInput = document.querySelector('#tab-chat-input');
+    if (chatInput) {
+        console.log("Chat input found:", chatInput);
+        
+        // Make sure Enter key works too
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                console.log("Enter key pressed!");
+                sendTabMessage();
+            }
+        });
+    } else {
+        console.error("Chat input not found! Check IDs in HTML");
+    }
+});
+function sendTabMessage() {
+    console.log("sendTabMessage function called");
+    
+    // Get the chat input element
+    const tabChatInput = document.querySelector('#tab-chat-input');
+    if (!tabChatInput) {
+        console.error("Chat input element not found");
+        return;
+    }
+    
+    const message = tabChatInput.value.trim();
+    console.log("Message to send:", message);
+    
+    if (!message) {
+        console.log("Empty message, not sending");
+        return;
+    }
+    
+    // Get the chat messages container
+    const tabChatMessages = document.querySelector('#tab-chat-messages');
+    if (!tabChatMessages) {
+        console.error("Chat messages container not found");
+        return;
+    }
+    
+    // Add user message to chat
+    const userMessageId = addTabMessageToChat(message, 'user');
+    console.log("Added user message with ID:", userMessageId);
+    
+    // Clear input
+    tabChatInput.value = '';
+    
+    // Add "thinking" message
+    const thinkingId = addTabMessageToChat('Analyzing financial data...', 'thinking');
+    console.log("Added thinking message with ID:", thinkingId);
+    
+    // Get current context from dashboard
+    const context = {
+        current_view: getCurrentTab(),
+        current_indicator: window.currentMacroIndicator || null,
+        current_metric: window.currentCompanyMetric || null
+    };
+    console.log("Context:", context);
+    
+    // Send query to server
+    console.log("Sending fetch request to /api/chat");
+    fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            query: message,
+            context: context
+        }),
+    })
+    .then(response => {
+        console.log("Received response:", response);
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Parsed data:", data);
+        
+        // Remove thinking message
+        removeTabMessage(thinkingId);
+        
+        // Add response to chat
+        let responseHtml = data.response;
+        
+        // Add sources if available
+        if (data.sources && data.sources.length > 0) {
+            responseHtml += `<div class="chat-sources">Sources: ${data.sources.join(', ')}</div>`;
+        }
+        
+        const systemMessageId = addTabMessageToChat(responseHtml, 'system');
+        console.log("Added system response with ID:", systemMessageId);
+        
+        // Update suggested questions based on the context and conversation
+        if (typeof updateTabSuggestedQuestions === 'function') {
+            updateTabSuggestedQuestions(context, message, data.response);
+        }
+    })
+    .catch(error => {
+        console.error('Error in fetch operation:', error);
+        
+        // Remove thinking message
+        removeTabMessage(thinkingId);
+        
+        // Add error message
+        const errorId = addTabMessageToChat('Sorry, I encountered an error processing your question. Please try again.', 'system');
+        console.log("Added error message with ID:", errorId);
+    });
+}
+
+// Helper function to add a message to the tab chat
+function addTabMessageToChat(message, type) {
+    console.log(`Adding ${type} message to chat:`, message.substring(0, 50) + (message.length > 50 ? '...' : ''));
+    
+    const tabChatMessages = document.querySelector('#tab-chat-messages');
+    if (!tabChatMessages) {
+        console.error("Chat messages container not found");
+        return null;
+    }
+    
+    const messageId = 'tab-msg-' + Date.now();
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.id = messageId;
+    messageDiv.innerHTML = `<div class="message-content">${message}</div>`;
+    
+    tabChatMessages.appendChild(messageDiv);
+    
+    // Scroll to the bottom
+    tabChatMessages.scrollTop = tabChatMessages.scrollHeight;
+    
+    return messageId;
+}
+
+// Helper function to remove a message from the tab chat
+function removeTabMessage(messageId) {
+    console.log("Removing message with ID:", messageId);
+    
+    if (!messageId) {
+        console.error("No message ID provided");
+        return;
+    }
+    
+    const messageDiv = document.getElementById(messageId);
+    if (messageDiv) {
+        messageDiv.remove();
+        console.log("Message removed successfully");
+    } else {
+        console.error("Message element not found:", messageId);
+    }
+}
+
+// Helper function to get current tab
+function getCurrentTab() {
+    const activeTabButton = document.querySelector('.tab-button.active');
+    const tabId = activeTabButton ? activeTabButton.getAttribute('data-tab') : null;
+    console.log("Current tab:", tabId);
+    return tabId;
+}
 
         // Function to load company data and create/update chart
         function loadCompanyChart(metric) {
             currentCompanyMetric = metric;
+            window.currentCompanyMetric = metric;
             
             fetch(`/company-data/${metric}`)
                 .then(response => response.json())
@@ -256,7 +622,6 @@
                         });
                         
                         // Create a separate segment just for predicted data
-                        // Need to position it correctly along x-axis
                         const predictedData = new Array(predictedStartIndex).fill(null);
                         predictedData.push(...data.values.slice(predictedStartIndex));
                         
@@ -268,7 +633,7 @@
                             pointRadius: 2,
                             borderWidth: 2,
                             borderDash: [5, 5],
-                            spanGaps: true // This makes the line skip over null values
+                            spanGaps: true
                         });
                     } else {
                         // All historical data
@@ -335,76 +700,6 @@
                 });
         }
 
-        // Function to load correlation data and create/update chart
-        function loadCorrelationChart(metric) {
-            if (!correlationData) return;
-            
-            const metricData = correlationData[metric];
-            if (!metricData) return;
-            
-            const indicators = Object.keys(metricData);
-            const correlationValues = Object.values(metricData);
-            
-            // Prepare colors based on correlation values (positive = blue, negative = red)
-            const backgroundColors = correlationValues.map(value => 
-                value >= 0 ? `rgba(30, 136, 229, ${Math.abs(value)})` : `rgba(229, 57, 53, ${Math.abs(value)})`
-            );
-            
-            const borderColors = correlationValues.map(value => 
-                value >= 0 ? '#1e88e5' : '#e53935'
-            );
-            
-            const ctx = document.getElementById('correlationChart').getContext('2d');
-            
-            // Destroy previous chart if it exists
-            if (correlationChart) {
-                correlationChart.destroy();
-            }
-            
-            // Create new chart
-            correlationChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: indicators.map(ind => ind.replace('_', ' ')),
-                    datasets: [{
-                        label: `Correlation with ${metric.replace('_', ' ')}`,
-                        data: correlationValues,
-                        backgroundColor: backgroundColors,
-                        borderColor: borderColors,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            min: -1,
-                            max: 1
-                        }
-                    },
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Correlation with ${metric.replace('_', ' ')}`,
-                            font: {
-                                size: 18
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const value = context.raw;
-                                    return `Correlation: ${value.toFixed(3)}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
         // Function to load and display macro summary data
         function loadMacroSummary() {
             fetch('/macro-summary')
@@ -425,19 +720,6 @@
                     companySummaryData = data;
                     if (currentCompanyMetric) {
                         updateCompanySummary();
-                    }
-                });
-        }
-
-        // Function to load correlation data
-        function loadCorrelationData() {
-            fetch('/correlations')
-                .then(response => response.json())
-                .then(data => {
-                    correlationData = data;
-                    const metricSelect = document.getElementById('metric-select');
-                    if (metricSelect.value) {
-                        loadCorrelationChart(metricSelect.value);
                     }
                 });
         }
@@ -563,7 +845,6 @@
             // Load data for each section
             loadMacroSummary();
             loadCompanySummary();
-            loadCorrelationData();
             
             // Add click event to macro indicators
             const indicators = document.querySelectorAll('.indicator-item');
@@ -597,12 +878,6 @@
                 });
             });
             
-            // Add change event to metric select for correlation chart
-            const metricSelect = document.getElementById('metric-select');
-            metricSelect.addEventListener('change', function() {
-                loadCorrelationChart(this.value);
-            });
-            
             // If indicators exist, select the first one by default
             if (indicators.length > 0) {
                 indicators[0].click();
@@ -617,5 +892,1355 @@
             showTab('macro-tab');
         });
     </script>
+
+    <script>
+        // Update macro chart with date filtering
+function updateMacroChart(indicator, startDate, endDate) {
+  console.log(`Fetching macro data: /macro-data/${indicator}/${startDate}/${endDate}`);
+  
+  fetch(`/macro-data/${indicator}/${startDate}/${endDate}`)
+    .then(response => {
+      console.log('Response status:', response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Received data:', data);
+      
+      // Create chart with filtered data
+      createMacroChart(indicator, data.dates, data.values, data.is_predicted);
+    })
+    .catch(error => {
+      console.error('Error updating macro chart:', error);
+    });
+}
+
+function updateCompanyChart(metric, startDate, endDate) {
+  console.log(`Fetching company data: /company-data/${metric}/${startDate}/${endDate}`);
+  
+  fetch(`/company-data/${metric}/${startDate}/${endDate}`)
+    .then(response => {
+      console.log('Response status:', response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Received data:', data);
+      
+      // Create chart with filtered data
+      createCompanyChart(metric, data.dates, data.values, data.is_predicted);
+    })
+    .catch(error => {
+      console.error('Error updating company chart:', error);
+    });
+}
+        
+// Add this to your index.html file, at the end before the closing </body> tag
+
+document.addEventListener('DOMContentLoaded', function() {
+    // File input handling
+    const fileInput = document.getElementById('company-data-file');
+    const fileNameDisplay = document.getElementById('file-name');
+    const uploadForm = document.getElementById('upload-form');
+    const uploadStatus = document.getElementById('upload-status');
+    const uploadResult = document.getElementById('upload-result');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const fileName = this.files[0].name;
+                fileNameDisplay.textContent = fileName;
+                
+                // Basic client-side validation
+                if (!fileName.toLowerCase().endsWith('.csv')) {
+                    uploadResult.innerHTML = `
+                        <div class="error-message">
+                            <strong>Error:</strong> The selected file is not a CSV file.
+                            Please select a valid CSV file.
+                        </div>
+                    `;
+                    uploadResult.classList.remove('hidden');
+                    this.value = ''; // Clear the file input
+                    fileNameDisplay.textContent = 'No file selected';
+                } else {
+                    uploadResult.classList.add('hidden');
+                }
+            } else {
+                fileNameDisplay.textContent = 'No file selected';
+            }
+        });
+    }
+    
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function(e) {
+            if (fileInput.files.length === 0) {
+                e.preventDefault();
+                uploadResult.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error:</strong> Please select a file to upload.
+                    </div>
+                `;
+                uploadResult.classList.remove('hidden');
+                return;
+            }
+            
+            uploadStatus.classList.remove('hidden');
+            uploadResult.classList.add('hidden');
+            
+            // Submit the form and handle the response via AJAX
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            fetch('/upload-company-data', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                uploadStatus.classList.add('hidden');
+                
+                if (data.success) {
+                    // Create metrics list display
+                    let metricsProcessed = '';
+                    if (data.metrics_processed && data.metrics_processed.length > 0) {
+                        metricsProcessed = `
+                            <div class="validation-item">
+                                <span>Metrics processed:</span>
+                                <span>${data.metrics_processed.join(', ')}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    // Create performance metrics summary
+                    let performanceMetrics = '';
+                    if (data.model_performance) {
+                        performanceMetrics = `
+                            <div class="performance-summary">
+                                <h4>Model Performance</h4>
+                                <div class="performance-grid">
+                        `;
+                        
+                        // Add a card for each metric
+                        for (const metric in data.model_performance) {
+                            const performance = data.model_performance[metric];
+                            const r2Display = (performance.r2).toFixed(3);
+                            const mapeDisplay = (performance.mape).toFixed(2) + '%';
+                            
+                            performanceMetrics += `
+                                <div class="performance-summary-card">
+                                    <div class="metric-name">${metric}</div>
+                                    <div class="metrics-row">
+                                        <div class="mini-metric">
+                                            <div class="mini-value">${r2Display}</div>
+                                            <div class="mini-label">R² Score</div>
+                                        </div>
+                                        <div class="mini-metric">
+                                            <div class="mini-value">${mapeDisplay}</div>
+                                            <div class="mini-label">Error %</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        performanceMetrics += `
+                                </div>
+                                <p class="performance-note">View detailed model performance metrics in the Company Metrics tab</p>
+                            </div>
+                        `;
+                    }
+                    
+                    uploadResult.innerHTML = `
+                        <div class="success-message">
+                            <strong>Success!</strong> Your company data has been uploaded and processed.
+                            Predictions for 2025-2026 have been generated.
+                        </div>
+                        <div class="validation-details">
+                            <h3>Data Summary:</h3>
+                            <div class="validation-item">
+                                <span>Records processed:</span>
+                                <span>${data.records_processed}</span>
+                            </div>
+                            <div class="validation-item">
+                                <span>Date range:</span>
+                                <span>${data.date_range}</span>
+                            </div>
+                            <div class="validation-item">
+                                <span>Predictions generated:</span>
+                                <span>${data.predictions_generated}</span>
+                            </div>
+                            ${metricsProcessed}
+                        </div>
+                        ${performanceMetrics}
+                    `;
+                    
+                    // Add CSS for the performance summary in the upload result
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        .performance-summary {
+                            margin-top: 20px;
+                            background-color: #f0f4ff;
+                            padding: 15px;
+                            border-radius: 5px;
+                            border-left: 4px solid #3f51b5;
+                        }
+                        
+                        .performance-summary h4 {
+                            color: #3f51b5;
+                            margin-bottom: 15px;
+                        }
+                        
+                        .performance-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                            gap: 15px;
+                        }
+                        
+                        .performance-summary-card {
+                            background: white;
+                            padding: 12px;
+                            border-radius: 4px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        }
+                        
+                        .metric-name {
+                            font-weight: bold;
+                            margin-bottom: 10px;
+                            color: #333;
+                            text-align: center;
+                        }
+                        
+                        .metrics-row {
+                            display: flex;
+                            justify-content: space-around;
+                        }
+                        
+                        .mini-metric {
+                            text-align: center;
+                        }
+                        
+                        .mini-value {
+                            font-size: 18px;
+                            font-weight: bold;
+                            color: #3f51b5;
+                        }
+                        
+                        .mini-label {
+                            font-size: 12px;
+                            color: #666;
+                        }
+                        
+                        .performance-note {
+                            font-size: 0.85rem;
+                            color: #666;
+                            margin-top: 15px;
+                            font-style: italic;
+                            text-align: center;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                        // Reload the page to update metrics in the UI
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 5000);
+
+                } else {
+                    let errorDetails = '';
+                    if (data.errors && data.errors.length > 0) {
+                        errorDetails = '<ul>' + 
+                            data.errors.map(err => `<li>${err}</li>`).join('') + 
+                            '</ul>';
+                    }
+                    
+                    uploadResult.innerHTML = `
+                        <div class="error-message">
+                            <strong>Error:</strong> ${data.message}
+                            ${errorDetails}
+                        </div>
+                    `;
+                }
+                
+                uploadResult.classList.remove('hidden');
+                
+                // If data was successfully processed, refresh the charts
+                if (data.success) {
+                    // Reload the currently displayed charts
+                    if (window.currentMacroIndicator) {
+                        loadMacroChart(window.currentMacroIndicator);
+                    }
+                    if (window.currentCompanyMetric) {
+                        loadCompanyChart(window.currentCompanyMetric);
+                    }
+                    
+                    // Reload summary data
+                    loadMacroSummary();
+                    loadCompanySummary();
+                }
+            })
+            .catch(error => {
+                uploadStatus.classList.add('hidden');
+                uploadResult.innerHTML = `
+                    <div class="error-message">
+                        <strong>Error:</strong> An unexpected error occurred while processing your request.
+                        Please try again later.
+                    </div>
+                `;
+                uploadResult.classList.remove('hidden');
+                console.error('Error:', error);
+            });
+        });
+    }
+});
+// Add these global variables to store chart instances
+let importanceChart = null;
+let validationChart = null;
+
+// Function to load model performance data
+function loadModelPerformance(metric) {
+    // Show loading state
+    const performanceContainer = document.getElementById('model-performance-container');
+    if (performanceContainer.classList.contains('hidden')) {
+        return; // Don't load if container is hidden
+    }
+    
+    console.log(`Loading performance data for metric: ${metric}`);
+    performanceContainer.classList.add('loading');
+    
+    // Clear any previous error messages
+    const errorElement = document.querySelector('.model-performance-error');
+    if (errorElement) {
+        errorElement.remove();
+    }
+    
+    
+    // Fetch performance data from API
+    fetch(`/model-performance/${metric}`)
+        .then(response => {
+            console.log(`API response status: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Received performance data for ${metric}:`, data);
+            
+            // Validate necessary data is present
+            if (!data || typeof data.r2 === 'undefined' || !data.feature_importance) {
+                throw new Error('Invalid performance data structure received');
+            }
+            
+            // Update metric values
+            document.getElementById('model-r2').textContent = (data.r2).toFixed(3);
+            document.getElementById('model-mape').textContent = (data.mape).toFixed(2) + '%';
+            document.getElementById('model-mae').textContent = formatNumber(data.mae);
+            
+            // Create feature importance chart
+            createImportanceChart(data.feature_importance);
+            
+            // Create validation scatter plot
+            createValidationChart(data.test_actual, data.test_predicted, data.test_dates);
+            
+            // Remove loading state
+            performanceContainer.classList.remove('loading');
+        })
+        fetch(`/model-performance/${metric}`)
+        .then(response => response.json())
+        .then(data => {
+            // Calculate normalized MAE
+            let normalizedMAE = 0;
+            
+            if (data.test_actual && data.test_actual.length > 0) {
+                // Calculate normalized MAE using the test data
+                normalizedMAE = normalizeMAE(data.mae, data.test_actual);
+            } else {
+                // Fallback calculation if test data isn't available
+                // Use a reasonable assumption based on the MAE value
+                // This is less accurate but provides a reasonable approximation
+                const assumedRange = data.mae * 20; // Assume range is 20x MAE
+                normalizedMAE = Math.min(data.mae / assumedRange, 1);
+            }
+            
+            // Update the display
+            document.getElementById('model-r2').textContent = (data.r2).toFixed(3);
+            document.getElementById('model-mape').textContent = (data.mape).toFixed(2) + '%';
+            
+            // Display normalized MAE instead of raw MAE
+            document.getElementById('model-mae').textContent = normalizedMAE.toFixed(3);
+            
+            // You might want to update the label to indicate this is normalized
+            const maeLabel = document.querySelector('#model-mae').closest('.performance-card').querySelector('.metric-label');
+            if (maeLabel) {
+                maeLabel.textContent = 'Normalized MAE (0-1)';
+            }
+            const normalizedMAEValue = normalizedMAE;
+            const markerPosition = normalizedMAEValue * 100;
+            document.getElementById('mae-marker').style.left = `${markerPosition}%`;
+            
+            // Rest of your existing code...
+        })
+        
+        
+        .catch(error => {
+            console.error('Error loading model performance data:', error);
+            performanceContainer.classList.remove('loading');
+            
+            // Create an error message
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'model-performance-error';
+            errorMessage.innerHTML = `
+                <div class="error-message">
+                    <p><i class="fas fa-exclamation-triangle"></i> Unable to load model performance data</p>
+                    <p class="error-details">Please try again later or contact support if the problem persists.</p>
+                    <p class="error-technical">Technical details: ${error.message}</p>
+                </div>
+            `;
+            
+            // Insert the error message at the beginning of the container
+            performanceContainer.prepend(errorMessage);
+        });
+}
+
+// Function to create feature importance chart
+function debugImportanceChartRendering() {
+    console.log("=========== IMPORTANCE CHART DEBUG ===========");
+    
+    // Check if canvas exists
+    const canvas = document.getElementById('importanceChart');
+    console.log("Canvas element exists:", !!canvas);
+    
+    if (canvas) {
+        console.log("Canvas dimensions:", {
+            width: canvas.width,
+            height: canvas.height,
+            clientWidth: canvas.clientWidth,
+            clientHeight: canvas.clientHeight,
+            offsetWidth: canvas.offsetWidth,
+            offsetHeight: canvas.offsetHeight
+        });
+        
+        console.log("Canvas style:", canvas.style);
+        console.log("Canvas parent:", canvas.parentElement);
+        
+        // Check if canvas is visible
+        const computedStyle = window.getComputedStyle(canvas);
+        console.log("Canvas visibility:", {
+            display: computedStyle.display,
+            visibility: computedStyle.visibility,
+            opacity: computedStyle.opacity
+        });
+    }
+    
+    // Check if container exists and is visible
+    const container = document.querySelector('.importance-chart-container');
+    console.log("Container element exists:", !!container);
+    
+    if (container) {
+        const containerStyle = window.getComputedStyle(container);
+        console.log("Container dimensions:", {
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            display: containerStyle.display,
+            visibility: containerStyle.visibility,
+            opacity: containerStyle.opacity
+        });
+    }
+    
+    // Check if we have feature importance data
+    console.log("Current metric:", window.currentCompanyMetric);
+    
+    console.log("=========== END DEBUG ===========");
+}
+
+// Completely rebuilt importance chart function with extra debugging
+function createImportanceChart(featureImportance) {
+    console.log("Creating importance chart with data:", featureImportance);
+    
+    try {
+        // Get the canvas element
+        const canvas = document.getElementById('importanceChart');
+        if (!canvas) {
+            console.error('Importance chart canvas not found');
+            return;
+        }
+        
+        // Make sure canvas is visible
+        canvas.style.display = 'block';
+        
+        // First ensure window.importanceChart is a valid Chart instance before trying to destroy it
+        if (window.importanceChart && typeof window.importanceChart.destroy === 'function') {
+            // Only call destroy if it's a function
+            window.importanceChart.destroy();
+        } else if (window.importanceChart) {
+            // If it exists but destroy is not a function, set it to null
+            console.warn("importanceChart exists but destroy is not a function, setting to null");
+            window.importanceChart = null;
+        }
+        
+        // Clear the canvas
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Validate feature importance data
+        if (!featureImportance || typeof featureImportance !== 'object' || Object.keys(featureImportance).length === 0) {
+            console.warn('Invalid feature importance data, using fallback');
+            featureImportance = {
+                'PIB_US_Courants': 0.25,
+                'RNB_US_Courants': 0.20,
+                'RNB_Par_Habitant': 0.15,
+                'Taux_Interet': 0.12,
+                'Masse_Monetaire': 0.10
+            };
+        }
+        
+        // Get top 5 features
+        const features = Object.keys(featureImportance);
+        const top5Features = features.slice(0, Math.min(5, features.length));
+        const top5Values = top5Features.map(feature => featureImportance[feature] * 100);
+        
+        // Clean labels
+        const cleanLabels = top5Features.map(feature => feature.replace(/_/g, ' '));
+        
+        console.log('Chart data prepared:', {
+            labels: cleanLabels,
+            values: top5Values
+        });
+        
+        // Fix the scale configuration to use the new Chart.js syntax
+        // The error is about xAxes and yAxes being invalid in newer Chart.js versions
+        
+        // Check Chart.js version to determine correct configuration
+        const chartVersion = Chart.version || '';
+        console.log('Chart.js version:', chartVersion);
+        
+        let chartConfig;
+        
+        // For Chart.js v3+
+        if (chartVersion.startsWith('3.') || chartVersion.startsWith('4.')) {
+            console.log('Using Chart.js v3+ configuration');
+            chartConfig = {
+                type: 'bar', // Use 'bar' instead of 'horizontalBar' in v3+
+                data: {
+                    labels: cleanLabels,
+                    datasets: [{
+                        label: 'Importance (%)',
+                        data: top5Values,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)',
+                            'rgba(255, 99, 132, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // This makes the bar chart horizontal in v3+
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Importance: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Importance (%)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    if (typeof value === 'string' && value.length > 20) {
+                                        return value.substr(0, 18) + '...';
+                                    }
+                                    return value;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+        } 
+        // For Chart.js v2
+        else {
+            console.log('Using Chart.js v2 configuration');
+            chartConfig = {
+                type: 'horizontalBar',
+                data: {
+                    labels: cleanLabels,
+                    datasets: [{
+                        label: 'Importance (%)',
+                        data: top5Values,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)',
+                            'rgba(255, 99, 132, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    legend: {
+                        display: false
+                    },
+                    tooltips: {
+                        callbacks: {
+                            label: function(tooltipItem, data) {
+                                return `Importance: ${tooltipItem.xLabel.toFixed(2)}%`;
+                            }
+                        }
+                    },
+                    scales: {
+                        xAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Importance (%)'
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                callback: function(value) {
+                                    if (value.length > 20) {
+                                        return value.substr(0, 18) + '...';
+                                    }
+                                    return value;
+                                }
+                            }
+                        }]
+                    }
+                }
+            };
+        }
+        
+        // Create the chart with appropriate configuration
+        window.importanceChart = new Chart(ctx, chartConfig);
+        
+        console.log('Importance chart created successfully');
+        
+    } catch (error) {
+        console.error('Error creating importance chart:', error);
+        
+        // Call fallback implementation
+        createFallbackImportanceChart(featureImportance);
+    }
+}
+function createFallbackImportanceChart(featureImportance) {
+    console.log("Creating fallback importance chart");
+    
+    try {
+        // Get the container element
+        const container = document.querySelector('.importance-chart-container');
+        if (!container) {
+            console.error("Cannot find importance chart container");
+            return;
+        }
+        
+        // Validate feature importance data
+        if (!featureImportance || typeof featureImportance !== 'object' || Object.keys(featureImportance).length === 0) {
+            featureImportance = {
+                'PIB_US_Courants': 0.25,
+                'RNB_US_Courants': 0.20,
+                'RNB_Par_Habitant': 0.15,
+                'Taux_Interet': 0.12,
+                'Masse_Monetaire': 0.10
+            };
+        }
+        
+        // Create a div to replace the canvas
+        let htmlContent = '<div class="importance-fallback">';
+        
+        // Sort features by importance
+        const sortedFeatures = Object.entries(featureImportance)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5); // Top 5 features
+        
+        // Add each feature as a bar
+        sortedFeatures.forEach(([feature, value]) => {
+            const percentage = (value * 100).toFixed(2);
+            const cleanFeature = feature.replace(/_/g, ' ');
+            const barWidth = Math.max(percentage, 5); // Minimum width of 5%
+            
+            htmlContent += `
+                <div class="importance-item">
+                    <div class="importance-label">${cleanFeature}</div>
+                    <div class="importance-bar-container">
+                        <div class="importance-bar" style="width: ${barWidth}%"></div>
+                        <div class="importance-value">${percentage}%</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        htmlContent += '</div>';
+        
+        // Find the chart wrapper or canvas
+        const chartWrapper = container.querySelector('.chart-wrapper');
+        const canvas = container.querySelector('#importanceChart');
+        
+        if (chartWrapper) {
+            // If wrapper exists, replace its content
+            chartWrapper.innerHTML = htmlContent;
+        } else if (canvas) {
+            // If only canvas exists, replace it
+            canvas.style.display = 'none';
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = 'chart-wrapper';
+            fallbackDiv.innerHTML = htmlContent;
+            canvas.parentNode.insertBefore(fallbackDiv, canvas);
+        } else {
+            // If neither exists, append to container
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = 'chart-wrapper';
+            fallbackDiv.innerHTML = htmlContent;
+            container.appendChild(fallbackDiv);
+        }
+        
+        // Add styles for the fallback chart
+        if (!document.getElementById('fallback-chart-styles')) {
+            const styleElement = document.createElement('style');
+            styleElement.id = 'fallback-chart-styles';
+            styleElement.textContent = `
+                .importance-fallback {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    height: 100%;
+                    padding: 20px 10px;
+                    box-sizing: border-box;
+                }
+                
+                .importance-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    height: 36px;
+                }
+                
+                .importance-label {
+                    width: 120px;
+                    text-align: right;
+                    font-size: 14px;
+                    color: #444;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                
+                .importance-bar-container {
+                    flex: 1;
+                    height: 24px;
+                    background-color: #f5f5f5;
+                    border-radius: 4px;
+                    position: relative;
+                }
+                
+                .importance-bar {
+                    height: 100%;
+                    background-color: rgba(54, 162, 235, 0.8);
+                    border-radius: 4px 0 0 4px;
+                }
+                
+                .importance-value {
+                    position: absolute;
+                    right: 10px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    font-weight: bold;
+                    font-size: 14px;
+                    color: #333;
+                }
+            `;
+            document.head.appendChild(styleElement);
+        }
+        
+        console.log("Fallback importance chart created successfully");
+    } catch (error) {
+        console.error("Error creating fallback chart:", error);
+    }
+}
+// Updated function to create validation scatter plot
+function createValidationChart(actualValues, predictedValues, dates) {
+    try {
+        const canvas = document.getElementById('validationChart');
+        if (!canvas) {
+            console.error('Validation chart canvas not found');
+            return;
+        }
+        
+        // Clear any previous chart
+        if (validationChart) {
+            validationChart.destroy();
+            validationChart = null;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Validate input data
+        if (!Array.isArray(actualValues) || !Array.isArray(predictedValues) || 
+            actualValues.length === 0 || actualValues.length !== predictedValues.length) {
+            console.error('Invalid data for validation chart');
+            return;
+        }
+        
+        // Ensure dates array exists and matches length, or generate fallback dates
+        let validDates = dates;
+        if (!Array.isArray(dates) || dates.length !== actualValues.length) {
+            console.warn('Invalid dates array for validation chart, generating fallback dates');
+            validDates = Array.from({ length: actualValues.length }, (_, i) => `Data point ${i+1}`);
+        }
+        
+        // Create scatter points with actual and predicted values
+        const scatterData = actualValues.map((actual, i) => ({
+            x: actual,
+            y: predictedValues[i],
+            date: validDates[i]
+        }));
+        
+        // Find min and max values for the perfect prediction line
+        const allValues = [...actualValues, ...predictedValues];
+        const min = Math.min(...allValues);
+        const max = Math.max(...allValues);
+        
+        // Create chart with proper configuration
+        validationChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Test Data Points',
+                        data: scatterData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    },
+                    {
+                        label: 'Perfect Prediction',
+                        data: [
+                            { x: min, y: min },
+                            { x: max, y: max }
+                        ],
+                        type: 'line',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                tooltips: {
+                    callbacks: {
+                        label: function(tooltipItem, data) {
+                            if (tooltipItem.datasetIndex === 0) {
+                                const point = data.datasets[0].data[tooltipItem.index];
+                                return [
+                                    `Date: ${point.date}`,
+                                    `Actual: ${formatNumber(point.x)}`,
+                                    `Predicted: ${formatNumber(point.y)}`,
+                                    `Difference: ${formatNumber(point.y - point.x)}`
+                                ];
+                            } else {
+                                return 'Perfect prediction line';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    xAxes: [{
+                        type: 'linear',
+                        position: 'bottom',
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Actual Value'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return formatNumber(value);
+                            }
+                        }
+                    }],
+                    yAxes: [{
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Predicted Value'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return formatNumber(value);
+                            }
+                        }
+                    }]
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                // Ensure chart fills its container
+                layout: {
+                    padding: {
+                        left: 10,
+                        right: 30,
+                        top: 10,
+                        bottom: 10
+                    }
+                }
+            }
+        });
+        
+        // Force chart to update and render
+        validationChart.update();
+        
+        console.log('Validation chart created successfully');
+    } catch (error) {
+        console.error('Error creating validation chart:', error);
+    }
+}
+// Chat functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.querySelector('.chat-container');
+    const chatHeader = document.querySelector('.chat-header');
+    const toggleChatBtn = document.getElementById('toggle-chat-btn');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendChatBtn = document.getElementById('send-chat-btn');
+    const suggestedQuestions = document.getElementById('suggested-questions');
+    
+    // Toggle chat open/closed
+    toggleChatBtn.addEventListener('click', function() {
+        chatContainer.classList.toggle('collapsed');
+        const isCollapsed = chatContainer.classList.contains('collapsed');
+        toggleChatBtn.innerHTML = isCollapsed ? '<i class="fas fa-chevron-up"></i>' : '<i class="fas fa-chevron-down"></i>';
+    });
+    
+    // Allow clicking anywhere on header to toggle
+    chatHeader.addEventListener('click', function(e) {
+        if (e.target !== toggleChatBtn && e.target.parentNode !== toggleChatBtn) {
+            toggleChatBtn.click();
+        }
+    });
+    
+    // Handle sending messages
+    function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        
+        // Add user message to chat
+        addMessageToChat(message, 'user');
+        
+        // Clear input
+        chatInput.value = '';
+        
+        // Add "thinking" message
+        const thinkingId = addMessageToChat('Analyzing financial data...', 'thinking');
+        
+        // Get current context from dashboard
+        const context = {
+            current_view: getCurrentTab(),
+            current_indicator: window.currentMacroIndicator,
+            current_metric: window.currentCompanyMetric
+        };
+        
+        // Send query to server
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: message,
+                context: context
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove thinking message
+            removeMessage(thinkingId);
+            
+            // Add response to chat
+            let responseHtml = data.response;
+            
+            // Add sources if available
+            if (data.sources && data.sources.length > 0) {
+                responseHtml += `<div class="chat-sources">Sources: ${data.sources.join(', ')}</div>`;
+            }
+                        addMessageToChat(responseHtml, 'system');
+            
+            // Update suggested questions based on the context
+            updateSuggestedQuestions(context);
+        })
+        .catch(error => {
+            // Remove thinking message
+            removeMessage(thinkingId);
+            
+            // Add error message
+            addMessageToChat('Sorry, I encountered an error analyzing the data. Please try again.', 'system');
+            console.error('Error:', error);
+        });
+    }
+    
+    // Send message when clicking send button
+    sendChatBtn.addEventListener('click', sendMessage);
+    
+    // Send message when pressing Enter
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+    
+    // Handle clicking on suggested questions
+    suggestedQuestions.addEventListener('click', function(e) {
+        if (e.target.classList.contains('question-btn')) {
+            chatInput.value = e.target.textContent;
+            sendMessage();
+        }
+    });
+    
+    // Helper function to add a message to the chat
+    function addMessageToChat(message, type) {
+        const messageId = 'msg-' + Date.now();
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+        messageDiv.id = messageId;
+        messageDiv.innerHTML = `<div class="message-content">${message}</div>`;
+        
+        chatMessages.appendChild(messageDiv);
+        
+        // Scroll to the bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return messageId;
+    }
+    
+    // Helper function to remove a message
+    function removeMessage(messageId) {
+        const messageDiv = document.getElementById(messageId);
+        if (messageDiv) {
+            messageDiv.remove();
+        }
+    }
+    
+    // Helper function to get current tab
+    function getCurrentTab() {
+        const activeTabButton = document.querySelector('.tab-button.active');
+        return activeTabButton ? activeTabButton.getAttribute('data-tab') : null;
+    }
+    
+    // Update suggested questions based on context
+    function updateSuggestedQuestions(context) {
+        const questions = [];
+        
+        // Base questions that are always relevant
+        questions.push("How reliable are these predictions?");
+        
+        // Tab-specific questions
+        if (context.current_view === 'macro-tab') {
+            questions.push("How do macroeconomic indicators affect our business?");
+            
+            if (context.current_indicator) {
+                const indicator = context.current_indicator.replace('_', ' ');
+                questions.push(`Why is ${indicator} predicted to change in 2026?`);
+                questions.push(`How does ${indicator} impact our company metrics?`);
+            }
+        }
+        else if (context.current_view === 'company-tab') {
+            questions.push("What's driving our predicted performance?");
+            
+            if (context.current_metric) {
+                const metric = context.current_metric.replace('_', ' ');
+                questions.push(`What factors most influence our ${metric}?`);
+                questions.push(`Why is ${metric} predicted to change in 2026?`);
+                questions.push(`Which macroeconomic indicator has the strongest impact on ${metric}?`);
+            }
+        }
+        else if (context.current_view === 'upload-tab') {
+            questions.push("What data should I upload for best predictions?");
+            questions.push("How are predictions generated from my data?");
+        }
+        
+        // Limit to 3-5 suggestions
+        const finalQuestions = questions.slice(0, 5);
+        
+        // Update the UI
+        suggestedQuestions.innerHTML = '';
+        finalQuestions.forEach(question => {
+            const button = document.createElement('button');
+            button.className = 'question-btn';
+            button.textContent = question;
+            suggestedQuestions.appendChild(button);
+        });
+    }
+    
+    // Initialize with default context
+    updateSuggestedQuestions({
+        current_view: getCurrentTab()
+    });
+    
+    // Update context when changing tabs
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const context = {
+                current_view: this.getAttribute('data-tab'),
+                current_indicator: window.currentMacroIndicator,
+                current_metric: window.currentCompanyMetric
+            };
+            updateSuggestedQuestions(context);
+        });
+    });
+    
+    // Update context when changing indicators/metrics
+    const indicators = document.querySelectorAll('.indicator-item');
+    indicators.forEach(item => {
+        item.addEventListener('click', function() {
+            const context = {
+                current_view: 'macro-tab',
+                current_indicator: this.getAttribute('data-indicator'),
+                current_metric: window.currentCompanyMetric
+            };
+            updateSuggestedQuestions(context);
+        });
+    });
+    
+    const companyMetrics = document.querySelectorAll('.company-item');
+    companyMetrics.forEach(item => {
+        item.addEventListener('click', function() {
+            const context = {
+                current_view: 'company-tab',
+                current_indicator: window.currentMacroIndicator,
+                current_metric: this.getAttribute('data-metric')
+            };
+            updateSuggestedQuestions(context);
+        });
+    });
+});
+
+// Update loadCompanyChart function to also load performance data
+function loadCompanyChart(metric) {
+    currentCompanyMetric = metric;
+    window.currentCompanyMetric = metric;
+    
+    fetch(`/company-data/${metric}`)
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('companyChart').getContext('2d');
+            
+            // Prepare datasets with different colors for historical and predicted data
+            let datasets = [];
+            
+            // Find where predictions start
+            const predictedStartIndex = data.is_predicted.indexOf(true);
+            
+            if (predictedStartIndex !== -1) {
+                // Historical data
+                datasets.push({
+                    label: 'Historical',
+                    data: data.values.slice(0, predictedStartIndex),
+                    borderColor: '#1e88e5',
+                    backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                    pointRadius: 1,
+                    borderWidth: 2
+                });
+                
+                // Create a separate segment just for predicted data
+                const predictedData = new Array(predictedStartIndex).fill(null);
+                predictedData.push(...data.values.slice(predictedStartIndex));
+                
+                datasets.push({
+                    label: 'Predicted (2025-2026)',
+                    data: predictedData,
+                    borderColor: '#e53935',
+                    backgroundColor: 'rgba(229, 57, 53, 0.1)',
+                    pointRadius: 2,
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    spanGaps: true
+                });
+            } else {
+                // All historical data
+                datasets.push({
+                    label: metric.replace('_', ' '),
+                    data: data.values,
+                    borderColor: '#1e88e5',
+                    backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                    pointRadius: 1,
+                    borderWidth: 2
+                });
+            }
+            
+            // Destroy previous chart if it exists
+            if (companyChart) {
+                companyChart.destroy();
+            }
+            
+            // Create new chart
+            companyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: metric.replace('_', ' '),
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+            
+            // Update the metric title
+            document.getElementById('current-company-metric').textContent = metric.replace('_', ' ');
+            
+            // Update summary if we have it
+            updateCompanySummary();
+            
+            // Now also load the model performance data for this metric
+            loadModelPerformance(metric);
+        });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggle-performance-btn');
+    const container = document.getElementById('model-performance-container');
+    const toggleText = document.getElementById('toggle-text');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            if (container.classList.contains('hidden')) {
+                // Show the container
+                container.classList.remove('hidden');
+                toggleText.textContent = 'Hide Model Performance';
+                
+                // Load performance data for the current metric
+                if (window.currentCompanyMetric) {
+                    loadModelPerformance(window.currentCompanyMetric);
+                }
+            } else {
+                // Hide the container
+                container.classList.add('hidden');
+                toggleText.textContent = 'Show Model Performance';
+            }
+        });
+    }
+    
+    // Add this to the existing DOMContentLoaded event or create a new one
+    const companyItems = document.querySelectorAll('.company-item');
+    companyItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Reset the model performance container when changing metrics
+            if (!container.classList.contains('hidden')) {
+                // If currently shown, reset the container to loading state
+                const metricValue = document.getElementById('model-r2');
+                const mapeValue = document.getElementById('model-mape');
+                const maeValue = document.getElementById('model-mae');
+                
+                metricValue.textContent = '--';
+                mapeValue.textContent = '--';
+                maeValue.textContent = '--';
+                
+                // Destroy charts if they exist
+                if (importanceChart) {
+                    importanceChart.destroy();
+                    importanceChart = null;
+                }
+                
+                if (validationChart) {
+                    validationChart.destroy();
+                    validationChart = null;
+                }
+            }
+        });
+    });
+});
+
+function normalizeMAE(mae, data) {
+    // Method 1: Normalize based on the range of the target variable
+    // This approach divides the MAE by the range of the actual values
+    // A value of 0 means perfect prediction, 1 means worst possible error
+    
+    // Get the range of the actual values
+    const range = Math.max(...data) - Math.min(...data);
+    
+    // If range is 0 or very small, return 0 (perfect prediction) to avoid division by zero
+    if (range === 0 || range < 1e-10) {
+        return 0;
+    }
+    
+    // Normalize MAE to be between 0 and 1
+    // Cap at 1 in case MAE > range (which would be unusual)
+    return Math.min(mae / range, 1);
+}
+
+    </script>
+    
+    
 </body>
 </html>
